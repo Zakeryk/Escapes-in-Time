@@ -1,0 +1,35 @@
+// digital pin 2 has a pushbutton attached to it. Give it a name:
+int pressurePad = 2;
+int propTrigger = 5;
+int active = 0;
+int inactive = 1;
+int newSession = 1;
+
+// the setup routine runs once when you press reset:
+void setup() {
+  // initialize serial communication at 9600 bits per second:
+  Serial.begin(9600);
+  // make the pushbutton's pin an input:
+  pinMode(pressurePad, INPUT);
+  pinMode(propTrigger, OUTPUT);
+}
+
+// the loop routine runs over and over again forever:
+void loop() {
+  // read the input pin:
+  int buttonState = digitalRead(pressurePad);
+  // print out the state of the button:
+
+  if (buttonState == active && newSession == 1) {
+  newSession = 0;
+  Serial.println("PULSE");
+  digitalWrite(propTrigger, HIGH);
+  delay(250);
+  digitalWrite(propTrigger, LOW);
+  delay(6000);
+  } else if (buttonState == inactive && newSession == 0) {
+  newSession = 1;
+  Serial.println("Ready...");
+  delay(1000);
+  }
+}
