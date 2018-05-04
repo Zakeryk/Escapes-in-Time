@@ -1,0 +1,218 @@
+#include <morse.h>
+#include <PubSubClient.h>
+#include <DNSServer.h>
+#include <ESP8266WiFi.h>
+#include <SPI.h>
+#include <WiFiManager.h> 
+
+#define NAME "event_module"
+#define SCAN_TYPE "null"
+
+char* topic = NAME;
+char* keepalive = "keepalive";
+char* server = "broker.escapeos.com";
+
+unsigned long previousMillis = 0;        
+const long interval = 10000;   
+
+#define PIN_STATUS  13
+#define PIN_SPEAKER 3
+
+// C above middle C
+#define FREQUENCY 523
+
+char message_buff[100];
+
+String clientID = "";
+bool isActive = 0;
+
+#define NUM_SPEEDS  5
+const float wpms[] = {5.0, 7.5, 10.0, 13.0, 15.0};
+const morseTiming_t durations[] = {34.29, 40.0, 48.0, 60.0, 80.0};
+
+LEDMorseSender slowerSender(PIN_STATUS, wpms[0]);
+SpeakerMorseSender fasterSender(PIN_SPEAKER, FREQUENCY, durations[0]);
+
+unsigned int speedIndex = 0;
+unsigned int lastChangeTime;
+
+ void resetEsp() {
+    Serial.println();
+    Serial.println();
+    Serial.println("FORCE RESET...");
+    delay(2000);
+    ESP.reset();
+ }
+
+char finalUid[10];
+WiFiClient espClient;
+PubSubClient client(espClient);
+
+String macToStr(const uint8_t* mac)
+{
+  String result;
+  for (int i = 0; i < 6; ++i) {
+    result += String(mac[i], 16);
+    if (i < 5)
+      result += ':';
+  }
+  return result;
+}
+ void configModeCallback (WiFiManager *myWiFiManager) {
+  Serial.println("Entered config mode");
+}
+
+void connectMQTT(String clientID) {  
+
+  String lastWill = "{ \"message\" : \"disconnected\", \"scanner_type\" : \""NAME"\", \"clientID\" : \"";
+  lastWill += (char*) clientID.c_str();
+  lastWill += "\" }";
+
+//client.connect(((char*) clientID.c_str()), "escapeos", "35cap3r1", ((char*) clientID.c_str()), 0, 1, ((char*) lastWill.c_str()))
+  if (client.connect(((char*) clientID.c_str()), "escapeos", "35cap3r1")) {
+    Serial.println("Connected to MQTT broker");
+    Serial.print("Topic is: ");
+    Serial.println(topic);
+  }
+     else {
+    Serial.println("MQTT connect failed");
+    Serial.println("Will reset and try again...");
+    resetEsp();
+  }
+  
+  String payload = "{ \"message\" : \"connected\", \"scanner_type\" : \""NAME"\", \"clientID\" : \"";
+  payload += (char*) clientID.c_str();
+  payload += "\" }";
+  
+  client.publish((char*) clientID.c_str(), (char*) payload.c_str(), 1);
+  
+  Serial.print("Sent to MQTT: ");
+  Serial.print((char*) payload.c_str());
+
+//    while (!client.connected()) {
+//    Serial.println("Connecting to MQTT...");
+// 
+//    if (client.connect("ESP8266Client", "escapeos", "35cap3r1" )) {
+// 
+// 
+//    } else {
+// 
+//      Serial.print("failed with state ");
+//      Serial.print(client.state());
+//      delay(2000);
+// 
+//    }
+//  }
+}
+
+void keepaliveMQTT(String clientID) {  
+  String payload = "{ \"message\" : \"keepalive\" , \"scanner_type\" : \""NAME"\" , \"clientID\" : \"";
+  payload += (char*) clientID.c_str();
+  payload += "\" }";
+  
+  if (!client.publish(keepalive, (char*) payload.c_str())) {
+    Serial.println("keepalive message wasn't delivered, resetting...");
+    resetEsp();
+  }
+  
+  //Serial.println("Sent to MQTT: ");
+  //Serial.println((char*) payload.c_str());
+}
+
+void callback(char* topic, byte* payload, unsigned int length) {
+ 
+  Serial.print("\nMessage arrived in topic: ");
+  Serial.println(topic);
+ 
+  Serial.print("Message:");
+  String myPayload;
+  for (int i = 0; i < length; i++) {
+    Serial.print((char)payload[i]);
+    myPayload += String((char)payload[i]);
+  } 
+
+  if (myPayload == "{\"message\":\"event\",\"status\":\"on\"}") {
+    isActive = 1;
+  }
+  if (myPayload == "{\"message\":\"event\",\"status\":\"off\"}") {
+    isActive = 0;
+  }
+
+  
+}
+
+void setup()
+{
+
+  Serial.begin(115200);
+
+  //WifiManager
+  WiFiManager wifiManager;
+
+  //WiFi.disconnect(); //Forgets previous networks
+  wifiManager.setAPCallback(configModeCallback);
+  wifiManager.autoConnect("DIRECT-escapeOS");
+
+      //Subscribe
+    client.setServer(server, 1883);
+    client.setCallback(callback);
+    Serial.print("Succesfully set server\n");
+  
+  SPI.begin(); // Init SPI bus
+
+//  for (byte i = 0; i < 6; i++) {
+//    key.keyByte[i] = 0xFF;
+//  }
+  
+  // Generate clientID based on MAC address
+  clientID += "eOS-";
+  uint8_t mac[6];
+  WiFi.macAddress(mac);
+  clientID += macToStr(mac);
+
+  Serial.print("\nConnecting to ");
+  Serial.print(server);
+  Serial.print(" as ");
+  Serial.println(clientID);
+  
+  connectMQTT(clientID);
+  
+  slowerSender.setup();
+  slowerSender.setMessage(String("death "));
+  lastChangeTime = millis();
+
+  client.subscribe((char*) clientID.c_str());
+}
+
+void loop()
+{
+
+  client.loop();
+  
+    //Keepalive loop
+    unsigned long currentMillis = millis();
+
+  if (currentMillis - previousMillis >= interval) {
+    //save the last time you pinged
+    previousMillis = currentMillis;
+ 
+    keepaliveMQTT(clientID);
+
+  }  
+
+if (isActive == 1) {
+  if (!slowerSender.continueSending())
+  {
+    slowerSender.startSending();
+  }
+
+  if((millis() - lastChangeTime) > 5000)
+  {
+    lastChangeTime = millis();
+    slowerSender.setWPM(wpms[speedIndex % NUM_SPEEDS]);
+  }
+} else if (isActive == 0) {
+    digitalWrite(PIN_STATUS, LOW);
+  }
+}
+
