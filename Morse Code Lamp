@@ -178,7 +178,7 @@ void setup()
   connectMQTT(clientID);
   
   slowerSender.setup();
-  slowerSender.setMessage(String("death "));
+  slowerSender.setMessage(String("d e a t h   "));
   lastChangeTime = millis();
 
   client.subscribe((char*) clientID.c_str());
@@ -215,4 +215,3 @@ if (isActive == 1) {
     digitalWrite(PIN_STATUS, LOW);
   }
 }
-
