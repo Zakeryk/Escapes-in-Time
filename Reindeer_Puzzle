@@ -30,15 +30,15 @@
 
 // CONSTANTS
 // The number of RFID readers
-const byte numReaders = 5;
+const byte numReaders = 9;
 // Each reader has a unique Slave Select pin
-const byte ssPins[] = {2, 0, 4, 5, 16};
+const byte ssPins[] = {0, 1, 2, 3, 4, 5, 6, 7, 9};
 // They'll share the same reset pin
-const byte resetPin = 1;
+const byte resetPin = 8;
 // This pin will be driven LOW to release a lock when puzzle is solved
 const byte lockPin = A0;
 // The sequence of NFC tag IDs required to solve the puzzle
-const String correctIDs[] = {"844c4fd3", "b6ba53d3", "11b452d3", "3af758d3", "2e9353d3"};
+const String correctIDs[] = {"xx", "xx", "xx", "xx", "xx", xx", "xx", "xx", "xx"};
 
 // GLOBALS
 // Initialise an array of MFRC522 instances representing each reader
@@ -46,10 +46,6 @@ MFRC522 mfrc522[numReaders];
 // The tag IDs currently detected by each reader
 String currentIDs[numReaders];
 
-
-/**
- * Initialisation
- */
 void setup() {
 
   #ifdef DEBUG
