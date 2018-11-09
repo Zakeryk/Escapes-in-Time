@@ -5,51 +5,31 @@
 * correct location, at which point an RFID tag embedded in the object
 * is detected by a sensor.
 * When all sensors read the tag of the correct object, the puzzle is solved.
-*
-* Demonstrates:
-* - SPI interface shared between several devices
-* - RFID library
 */
-
-// DEFINES
-// Provides debugging information over serial connection if defined
-#define DEBUG
-
-// LIBRARIES
-// Standard SPI library comes bundled with the Arduino IDE
+ 
 #include <SPI.h>
-// Download and install from https://github.com/miguelbalboa/rfid
 #include <MFRC522.h>
 
-// CONSTANTS
-// The number of RFID readers
 const byte numReaders = 5;
-// Each reader has a unique Slave Select pin
 const byte ssPins[] = {2, 0, 4, 5, 16};
-// They'll share the same reset pin
 const byte resetPin = 1;
-// This pin will be driven LOW to release a lock when puzzle is solved
-const byte lockPin = A0;
-// The sequence of NFC tag IDs required to solve the puzzle
-const String correctIDs[] = {"844c4fd3", "b6ba53d3", "11b452d3", "3af758d3", "2e9353d3"};
+const byte lockPin = 10;
+const int resetTime = 600000;
+int puzzleTimer = 0;
+const String correctIDs[] = {"b2e184a3", "f23db5a3", "923cb5a3", "b28cbda3", "f2e7c1a3"};
+//Pink Elf: f2e7c1a3
+//Green Elf: b28cbda3
+//Red Elf: 923cb5a3
+//Purple Elf: f23db5a3
+//Yellow Elf: b2e184a3
 
-// GLOBALS
-// Initialise an array of MFRC522 instances representing each reader
 MFRC522 mfrc522[numReaders];
-// The tag IDs currently detected by each reader
 String currentIDs[numReaders];
 
-
-/**
- * Initialisation
- */
 void setup() {
-
-  #ifdef DEBUG
-  // Initialise serial communications channel with the PC
-  Serial.begin(9600);
-  Serial.println(F("Serial communication started"));
-  #endif
+  Serial.begin(115200);
+  delay(10);
+  Serial.println("Serial communication started");
   
   // Set the lock pin as output and secure the lock
   pinMode(lockPin, OUTPUT);
@@ -69,7 +49,6 @@ void setup() {
     // Set the gain to max - not sure this makes any difference...
     // mfrc522[i].PCD_SetAntennaGain(MFRC522::PCD_RxGain::RxGain_max);
     
-	#ifdef DEBUG
     // Dump some debug information to the serial monitor
     Serial.print(F("Reader #"));
     Serial.print(i);
@@ -79,22 +58,18 @@ void setup() {
     Serial.print(mfrc522[i].PCD_GetAntennaGain());
     Serial.print(F(". Version : "));
     mfrc522[i].PCD_DumpVersionToSerial();
-	#endif
     
     // Slight delay before activating next reader
     delay(100);
   }
-  
-  #ifdef DEBUG
   Serial.println(F("--- END SETUP ---"));
-  #endif
 }
 
 /**
  * Main loop
  */
-void loop() {
 
+void loop() {  
   // Assume that the puzzle has been solved
   boolean puzzleSolved = true;
 
@@ -103,6 +78,8 @@ void loop() {
 
   // Loop through each reader
   for (uint8_t i=0; i<numReaders; i++) {
+
+    puzzleTimer++;
 
     // Initialise the sensor
     mfrc522[i].PCD_Init();
@@ -136,7 +113,6 @@ void loop() {
     mfrc522[i].PCD_StopCrypto1(); 
   }
 
-  #ifdef DEBUG
   // If the changedValue flag has been set, at least one sensor has changed
   if(changedValue){
     // Dump to serial the current state of all sensors
@@ -150,7 +126,6 @@ void loop() {
     }
     Serial.println(F("---"));
   }
-  #endif
 
   // If the puzzleSolved flag is set, all sensors detected the correct ID
   if(puzzleSolved){
@@ -158,7 +133,7 @@ void loop() {
   }
  
   // Add a short delay before next polling sensors
-  //delay(100); 
+  //delay(100);   
 }
 
 /**
@@ -166,18 +141,16 @@ void loop() {
  */
 void onSolve(){
 
-  #ifdef DEBUG
+  if (puzzleTimer < 20) {
+  ESP.reset();
+  }
   // Print debugging message
   Serial.println(F("Puzzle Solved!"));
-  #endif
   
   // Release the lock
   digitalWrite(lockPin, LOW);
-
-  while(true) {
-    delay(1000);
-  }
-  
+  delay(resetTime);
+  ESP.reset();
 }
 
 /**
