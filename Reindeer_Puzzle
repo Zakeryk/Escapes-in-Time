@@ -7,9 +7,15 @@
 * is detected by a sensor.
 * When all sensors read the tag of the correct object, the puzzle is solved.
 *
-* Demonstrates:
-* - SPI interface shared between several devices
-* - RFID library
+* 1. Dasher - Orange - PIN 0 
+* 2. Dancer - Green - PIN 1
+* 3. Prancer - White - PIN 2
+* 4. Vixen - Blue - PIN 3
+* 5. Comet - Yellow - PIN 4
+* 6. Cupid - Purple - PIN 5
+* 7. Donner - Brown - PIN 6
+* 8. Blitzen - Grey - PIN 7
+* 9. Rudolph - Red - PIN 9
 */
 
 // DEFINES
