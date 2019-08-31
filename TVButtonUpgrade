@@ -1,0 +1,56 @@
+const int buttonPin = 2;
+const int triggerPin = 5;
+
+int buttonState = 0;
+int buttonPress = 0;
+int primeTrigger = 1;
+
+const int windowMIN = 1000;
+const int windowMAX = 2000;
+const int triggerCooldown = 20000;
+
+void setup() {
+  pinMode(LED_BUILTIN, OUTPUT);
+  pinMode(triggerPin, OUTPUT);
+  pinMode(buttonPin, INPUT);
+  digitalWrite(LED_BUILTIN, HIGH);
+  digitalWrite(triggerPin, LOW);
+  
+  Serial.begin(115200);
+}
+
+void loop() {
+  buttonState = digitalRead(buttonPin);
+  Serial.println(buttonPress);
+
+  //Button press requirement
+  if (buttonState == LOW && buttonPress < windowMIN && primeTrigger == 1) {
+  buttonPress++;
+  }
+  if (buttonState == HIGH && buttonPress < windowMIN) {
+  buttonPress = 0;
+  }
+  
+  //Window of trigger activation
+  if (buttonPress >= windowMIN && buttonPress <= windowMAX) {
+  digitalWrite(LED_BUILTIN, LOW);
+  digitalWrite(triggerPin, HIGH);
+  primeTrigger = 0;
+  buttonPress++;
+  } 
+  //Delay before priming trigger again
+  if (buttonPress >= windowMAX) {
+  digitalWrite(LED_BUILTIN, HIGH);
+  digitalWrite(triggerPin, LOW);
+  buttonPress++;
+  }
+  //Prime trigger 1st requirement
+  if (buttonPress > triggerCooldown) {
+  buttonPress = 0;
+  }
+  //Prime trigger 2nd requirement
+  if (buttonState == HIGH) {
+  primeTrigger = 1;
+  }
+  
+}
