@@ -16,11 +16,11 @@ const byte resetPin = 3;
 const byte lockPin = 16;
 const int resetTime = 600000;
 int puzzleTimer = 0;
-const String correctIDs[] = {"b26ea259", "29125d9", "b56924d9", "11e924d9"};
-//Card 1: b26ea259
-//Card 2: 29125d9
-//Card 3: b56924d9
-//Card 4: 11e924d9
+const String correctIDs[] = {"f6975942", "56725942", "c6975942", "a6965942"};
+//Card 1 (Mrs. White): f6975942
+//Card 2 (Mr. Green): 56725942
+//Card 3 (Lead Pipe): c6975942
+//Card 4 (Wrench): a6965942
 
 MFRC522 mfrc522[numReaders];
 String currentIDs[numReaders];
