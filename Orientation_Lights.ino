@@ -6,7 +6,7 @@
 #define PIN 6
 
 //960 LEDS
-#define NUM_LEDS 960
+#define NUM_LEDS 903
 
 #define BRIGHTNESS 255
 
